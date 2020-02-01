@@ -1,7 +1,7 @@
 /*  
     sgc: A garbage collector for C/C++.
  
-    Copyright (C) 2002-2008 Peter Hanappe, Sony Computer Science
+    Copyright (C) 2002-2020 Peter Hanappe, Sony Computer Science
     Laboratory Paris
 
     This library is free software; you can redistribute it and/or
