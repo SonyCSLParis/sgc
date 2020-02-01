@@ -6,6 +6,9 @@ set(libr_VERSION_MINOR 1)
 
 set(CMAKE_BUILD_TYPE DEBUG)
 
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -shared")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_DEBUG} -shared ")
+
 set(SOURCES
   src/config.h
   src/sgc_allocator.c

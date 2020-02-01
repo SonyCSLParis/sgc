@@ -74,8 +74,6 @@ static void sgc_lib_init(void)
 {
 	int i;
 
-        printf("*** sgc_lib_init ***\n");
-
 	if (sgc_initialized == 1) {
 		sgc_err("Garbage collector already initialized");
 		return;
@@ -108,27 +106,20 @@ static void sgc_lib_init(void)
 	sgc_initialized = 1;
 }
 
-//static void __attribute__((destructor)) sgc_lib_fini(void)
-static void sgc_lib_fini(void)
-{
-        printf("*** sgc_lib_fini ***\n");
-}
+/* static void __attribute__((destructor)) sgc_lib_fini(void) */
+/* { */
+/*         printf("*** sgc_lib_fini ***\n"); */
+/* } */
 
 int sgc_init(void* ptr, int concurrent)
 {
-        printf("*** sgc_init 1 ***\n");
-
 	if (sgc_initialized == 0)
                 sgc_lib_init();
-                        
-        printf("*** sgc_init 2 ***\n");
 
         if (sgc_initialized != 1) {
 		sgc_err("Garbage collector failed to initialize");
 		return -1;
         }
-
-        printf("*** sgc_init 3 ***\n");
 
 #if SGC_USE_THREADS
 	sgc_thread_attach_main(pthread_self(), ptr);
@@ -137,7 +128,6 @@ int sgc_init(void* ptr, int concurrent)
 	if (sgc_concurrent)
 		pthread_create(&sgc_thread, NULL, sgc_main, NULL);
 #endif
-        printf("*** sgc_init 4 ***\n");
 
 	return 0;
 }
