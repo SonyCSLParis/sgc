@@ -1,0 +1,145 @@
+/*  
+    sgc: A garbage collector for C/C++.
+ 
+    Copyright (C) 2002-2008 Peter Hanappe, Sony Computer Science
+    Laboratory Paris
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Library General Public
+    License as published by the Free Software Foundation; either
+    version 2 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Library General Public License for more details.
+
+    You should have received a copy of the GNU Library General Public
+    License along with this library; if not, write to the Free
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+*/
+/*  -*- linux-c -*- */
+
+#ifndef _SGC_LIFO_H
+#define _SGC_LIFO_H
+
+#define vtype volatile
+
+#ifdef __SMP__
+#define LOCK "lock ; "
+#else
+#define LOCK ""
+#endif
+
+
+typedef struct sgc_cell_t {
+	struct sgc_cell_t* link;              /*+ next cell in the list       +*/
+	                                      /*+ any data here               +*/
+} sgc_cell_t;
+
+
+typedef struct sgc_lifo_t {
+	vtype unsigned long ic;               /*+ input (push) count  +*/
+	vtype sgc_cell_t* top;                /*+ top of the stack    +*/
+	vtype unsigned long oc;               /*+ output (pop) count  +*/
+} sgc_lifo_t;
+
+static inline void sgc_lifo_init(sgc_lifo_t* lf)
+{
+	lf->ic = 0;             
+	lf->top = 0;
+	lf->oc = 0;
+}
+
+static inline sgc_cell_t* sgc_lifo_avail(sgc_lifo_t* lf) 
+{ 
+	return (sgc_cell_t*) lf->top;
+}
+
+static inline void sgc_lifo_push(sgc_lifo_t* lf, sgc_cell_t * cl)
+{
+#if 0
+	__asm__ __volatile__ (
+		"# LFPUSH\n\t"
+		"pushl %%ebx\n\t"
+		"pushl %%ecx\n\t"
+		"movl 0(%%esi), %%eax\n\t"
+		"movl 4(%%esi), %%edx\n"
+		"1:\t"
+		"movl %%eax, %%ebx\n\t"
+		"incl %%ebx\n\t"
+		"movl %%edx, (%%ecx)\n\t"
+		LOCK "cmpxchg8b (%%esi)\n\t"
+		"jnz 1b\n\t"
+		"popl %%ecx\n\t"
+		"popl %%ebx\n\t"
+		:/* no output */
+		:"S" (lf), "c" (cl)
+		:"memory", "eax", "edx");
+#else
+        cl->link = lf->top;
+        lf->top = cl;
+#endif
+}
+
+static inline sgc_cell_t* sgc_lifo_pop(sgc_lifo_t* lf)
+{
+#if 0
+	sgc_cell_t* v=0;
+	__asm__ __volatile__ (
+		"# LFPOP \n\t"
+		"pushl %%ebx\n\t"
+		"pushl %%ecx\n\t"
+		"movl 4(%%esi), %%edx\n\t"
+		"movl  (%%esi), %%eax\n\t"
+		"testl %%eax, %%eax\n\t"
+		"jz 20f\n"
+		"10:\t"
+		"movl (%%eax), %%ebx\n\t"
+		"movl %%edx, %%ecx\n\t"
+		"incl %%ecx\n\t"
+		LOCK "cmpxchg8b (%%esi)\n\t"
+		"jz 20f\n\t"
+		"testl %%eax, %%eax\n\t"
+		"jnz 10b\n"
+		"20:\t"
+		"popl %%ecx\n\t"
+		"popl %%ebx\n\t"
+		:"=a" (v)
+		:"S" (&lf->top)
+		:"memory", "edx");
+	return v;
+#else
+	sgc_cell_t* v = lf->top;
+        if (lf->top)
+                lf->top = lf->top->link;
+        return v;
+#endif
+}
+
+static inline unsigned long sgc_lifo_size(sgc_lifo_t* lf)
+{
+#if 0
+	unsigned long n;
+	__asm__ __volatile__ (
+		"# LFSIZE\n\t"
+		"movl 8(%%esi), %%edx\n\t"
+		"movl  (%%esi), %%eax\n\t"
+		"subl %%edx, %%eax\n\t"
+		:"=a" (n)
+		:"S" (lf)
+		:"memory", "edx");
+	return n;
+#else
+	unsigned long n = 0;
+	sgc_cell_t* v = lf->top;
+        while (v) {
+                n++;
+                v = v->link;
+        }
+        return n;
+#endif
+}
+
+#endif
